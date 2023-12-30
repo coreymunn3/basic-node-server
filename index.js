@@ -2,7 +2,11 @@ const express = require("express");
 const axios = require("axios");
 const path = require("path");
 const { v4: uuid } = require("uuid");
-const { writeFile, readFile } = require("fs").promises;
+// file utilities
+const fs = require("fs");
+const fsp = fs.promises;
+const { writeFile, readFile } = fsp;
+const { existsSync } = fs;
 
 const app = express();
 app.use(express.json());
@@ -38,6 +42,24 @@ app.get("/users/:id", async (req, res) => {
     res.status(500).send({
       message: JSON.stringify(error),
     });
+  }
+});
+
+// todos middelware - ensure db.json exists before proceeding
+app.all("/todos", async (req, res, next) => {
+  dbFilePath = path.join(__dirname, "state", "db.json");
+  // if db.json exists, continue
+  if (existsSync(dbFilePath)) {
+    next();
+  }
+  // otherwise, create the db.json file
+  else {
+    try {
+      await writeFile(dbFilePath, "[]");
+      next();
+    } catch (error) {
+      res.status(500).json({ message: "error creating the db file" });
+    }
   }
 });
 
