@@ -50,14 +50,21 @@ app.get("/todos", async (req, res) => {
 
 // create a todo
 app.post("/todos", async (req, res) => {
-  const title = req.body.title;
-  const complete = req.body.complete;
+  if (!req.body?.title || !req.body?.complete) {
+    return res
+      .status(400)
+      .json({ message: "error - POST missing title or complete in body" });
+  }
+  const newTodo = {
+    title: req.body.title,
+    complete: req.body.complete,
+  };
   // get the current todos
   const filepath = path.join(__dirname, "state", "db.json");
   const file = await readFile(filepath, "utf8");
   const todos = JSON.parse(file);
   // add new todo
-  todos.push({ id: uuid(), title, complete });
+  todos.push({ id: uuid(), ...newTodo });
   // write to file
   await writeFile(filepath, JSON.stringify(todos));
   res.status(200).json({
