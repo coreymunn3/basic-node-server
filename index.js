@@ -73,10 +73,15 @@ app.get("/todos", async (req, res) => {
 
 // create a todo
 app.post("/todos", async (req, res) => {
-  if (!req.body?.title || !req.body?.complete) {
+  if (!req.body?.title) {
     return res
       .status(400)
-      .json({ message: "error - POST missing title or complete in body" });
+      .json({ message: "error - POST missing title in body" });
+  }
+  if (req.body?.complete === undefined) {
+    return res
+      .status(400)
+      .json({ message: "error - POST missing complete in body" });
   }
   const newTodo = {
     title: req.body.title,
