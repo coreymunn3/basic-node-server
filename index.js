@@ -10,7 +10,8 @@ const { existsSync } = fs;
 
 const app = express();
 app.use(express.json());
-const PORT = 5000;
+const PORT = process.env.PORT;
+console.log(process.env);
 
 app.get("/test", (req, res) => {
   res.status(200).send({ message: "test" });
