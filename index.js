@@ -2,6 +2,9 @@ const express = require("express");
 const axios = require("axios");
 const path = require("path");
 const { v4: uuid } = require("uuid");
+// db
+const mongoose = require("mongoose");
+const Favorite = require("./models/favorite");
 // file utilities
 const fs = require("fs");
 const fsp = fs.promises;
@@ -16,32 +19,47 @@ app.get("/test", (req, res) => {
   res.status(200).send({ message: "test" });
 });
 
-// get all users
-app.get("/users", async (req, res) => {
-  console.log("reaching out for users...");
+app.get("/favorites", async (req, res) => {
   try {
-    const users = await axios.get("https://jsonplaceholder.typicode.com/users");
-    res.status(200).json(users.data);
-  } catch (error) {
-    res.status(500).send({
-      message: JSON.stringify(error),
+    const favorites = await Favorite.find();
+    res.status(200).json({
+      favorites: favorites,
     });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to GET favorites" });
   }
 });
 
-// get a single user by ID
-app.get("/users/:id", async (req, res) => {
-  const id = req.params.id;
-  console.log(`reaching out for user ${id} ...`);
+app.post("/favorites", async (req, res) => {
+  const favName = req.body.name;
+  const favType = req.body.type;
+  const favUrl = req.body.url;
+
   try {
-    const users = await axios.get(
-      `https://jsonplaceholder.typicode.com/users/${id}`
-    );
-    res.status(200).json(users.data);
+    if (favType !== "movie" && favType !== "character") {
+      throw new Error('"type" should be "movie" or "character"!');
+    }
+    const existingFav = await Favorite.findOne({ name: favName });
+    if (existingFav) {
+      throw new Error("Favorite exists already!");
+    }
   } catch (error) {
-    res.status(500).send({
-      message: JSON.stringify(error),
-    });
+    return res.status(500).json({ message: error.message });
+  }
+
+  const favorite = new Favorite({
+    name: favName,
+    type: favType,
+    url: favUrl,
+  });
+
+  try {
+    await favorite.save();
+    res
+      .status(201)
+      .json({ message: "Favorite saved!", favorite: favorite.toObject() });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to save new favorite" });
   }
 });
 
@@ -99,6 +117,35 @@ app.post("/todos", async (req, res) => {
   });
 });
 
+// get all users
+app.get("/users", async (req, res) => {
+  console.log("reaching out for users...");
+  try {
+    const users = await axios.get("https://jsonplaceholder.typicode.com/users");
+    res.status(200).json(users.data);
+  } catch (error) {
+    res.status(500).send({
+      message: JSON.stringify(error),
+    });
+  }
+});
+
+// get a single user by ID
+app.get("/users/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(`reaching out for user ${id} ...`);
+  try {
+    const users = await axios.get(
+      `https://jsonplaceholder.typicode.com/users/${id}`
+    );
+    res.status(200).json(users.data);
+  } catch (error) {
+    res.status(500).send({
+      message: JSON.stringify(error),
+    });
+  }
+});
+
 // get all posts
 app.get("/posts", async (req, res) => {
   console.log("reaching out for posts...");
@@ -144,6 +191,16 @@ app.get("/posts/:id/comments", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`App listening on port ${PORT}`);
-});
+mongoose.connect(
+  "mongodb://localhost:27017/favorites",
+  { useNewUrlParser: true },
+  (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      app.listen(PORT, () => {
+        console.log(`App listening on port ${PORT}`);
+      });
+    }
+  }
+);
