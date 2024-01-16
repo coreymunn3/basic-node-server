@@ -191,16 +191,17 @@ app.get("/posts/:id/comments", async (req, res) => {
   }
 });
 
-mongoose.connect(
-  "mongodb://localhost:27017/favorites",
-  { useNewUrlParser: true },
-  (err) => {
-    if (err) {
-      console.log(err);
-    } else {
+try {
+  mongoose
+    .connect("mongodb://mongo-container:27017/favorites", {
+      useNewUrlParser: true,
+    })
+    .then(() => {
       app.listen(PORT, () => {
         console.log(`App listening on port ${PORT}`);
       });
-    }
-  }
-);
+    });
+} catch (error) {
+  console.log("Server failed to start - failed to connect to mongodb server");
+  console.log(error);
+}
